@@ -34,6 +34,7 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({ mediaFiles, onRemove, isUpl
   // Store analysis states and results for all files
   const [analyzingFiles, setAnalyzingFiles] = useState<{[key: string]: boolean}>({});
   const [analysisResults, setAnalysisResults] = useState<{[key: string]: AnalysisResults}>({});
+  const [expandedTranscripts, setExpandedTranscripts] = useState<{[key: string]: boolean}>({});
 
   const handleStartAnalysis = (fileId: string) => {
     setAnalyzingFiles(prev => ({
@@ -157,6 +158,7 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
   currentTheme,
   isDarkMode
 }) => {
+  const [expandedTranscripts, setExpandedTranscripts] = useState<{[key: string]: boolean}>({});
   
   const getMediaTypeIcon = (type: string) => {
     switch (type) {
@@ -172,7 +174,6 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
         return null;
     }
   };
-  
   const renderAnalysisResults = (fileId: string) => {
     const results = analysisResults[fileId];
     if (!results) return null;
@@ -185,14 +186,27 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
       <div className={`mt-3 text-xs ${bgColor} p-3 rounded border ${borderColor}`}>
         <div className="font-semibold mb-2">Analysis Results:</div>
         {results.linguistics && (
-          <div className="space-y-2">
+          <>
             {results.linguistics.transcript && (
               <div>
                 <span className="font-medium">Transcript:</span>
-                <p className={`mt-1 ${textColor}`}>{results.linguistics.transcript.length > 100 
-                  ? `${results.linguistics.transcript.substring(0, 100)}...` 
-                  : results.linguistics.transcript}
+                <p className={`mt-1 ${textColor}`}>
+                  {expandedTranscripts[fileId] || (results.linguistics.transcript && results.linguistics.transcript.length <= 100)
+                    ? results.linguistics.transcript 
+                    : `${results.linguistics.transcript?.substring(0, 100)}...`}
                 </p>
+                {results.linguistics.transcript && results.linguistics.transcript.length > 100 && (
+                  <button 
+                    className="text-xs mt-1" 
+                    style={{ color: currentTheme.primary }}
+                    onClick={() => setExpandedTranscripts((prev: {[key: string]: boolean}) => ({
+                      ...prev, 
+                      [fileId]: !prev[fileId]
+                    }))}
+                  >
+                    {expandedTranscripts[fileId] ? 'Show less' : 'Show more'}
+                  </button>
+                )}
               </div>
             )}
             <div>
@@ -230,7 +244,7 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
         {results.data && Object.keys(results.data).length > 0 && (
           <div className="grid grid-cols-2 gap-1 mt-2">
@@ -263,11 +277,11 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
               {getMediaTypeIcon('image')}
               <div className={`text-xs font-medium truncate ${textColor}`}>{file.file.name}</div>
             </div>
-            <img 
-              src={file.url || URL.createObjectURL(file.file)} 
-              alt={file.file.name} 
-              className="w-full h-28 object-cover rounded" 
-            />
+             <iframe
+              src={file.url ? `${file.url.replace('/view', '/preview')}` : URL.createObjectURL(file.file)}
+              className="w-full h-28 rounded"
+              allowFullScreen
+              />
             {renderUploadStatus(file)}
             <div className="mt-2">
               <button
@@ -290,11 +304,11 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
               {getMediaTypeIcon('audio')}
               <div className={`text-xs font-medium truncate ${textColor}`}>{file.file.name}</div>
             </div>
-            <audio 
-              controls 
-              className="w-full h-12" 
-              src={file.url || URL.createObjectURL(file.file)}
-            />
+            <iframe
+              src={file.url ? file.url.replace('/view', '/preview') : URL.createObjectURL(file.file)} 
+              className="w-full h-20 rounded"
+              allow="autoplay"
+              />
             {renderUploadStatus(file)}
             <div className="mt-2">
               <button
@@ -344,10 +358,10 @@ const PreviewSection: React.FC<PreviewSectionProps> = ({
               {getMediaTypeIcon('video')}
               <div className={`text-xs font-medium truncate ${textColor}`}>{file.file.name}</div>
             </div>
-            <video 
-              controls 
-              className="w-full h-40 object-cover rounded" 
-              src={file.url || URL.createObjectURL(file.file)}
+            <iframe
+              src={file.url ? file.url.replace('/view', '/preview') : URL.createObjectURL(file.file)}
+              className="w-full h-40 rounded"
+              allowFullScreen
             />
             {renderUploadStatus(file)}
             <div className="mt-2">
