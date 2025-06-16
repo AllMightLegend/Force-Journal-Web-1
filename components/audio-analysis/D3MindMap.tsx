@@ -34,6 +34,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
   const [selectedNode, setSelectedNode] = useState<MindMapNode | null>(null);
 
   useEffect(() => {
+    // Clear any existing visualization
     d3.select('#d3-mind-map-container').selectAll('*').remove();
     if (!nodes || nodes.length === 0) return;
 
@@ -48,6 +49,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
         nodeMap[l.source].children.push(nodeMap[l.target]);
       }
     });
+
     // Find root (node not targeted by any link)
     const targetIds = new Set(links.map(l => l.target));
     const rootNode = nodes.find(n => !targetIds.has(n.id)) || nodes[0];
@@ -61,6 +63,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
     const cluster = d3.cluster().size([360, radius]);
     const root = cluster(hierarchy);
 
+    // Create SVG
     const svg = d3.select('#d3-mind-map-container')
       .append('svg')
       .attr('viewBox', `0 0 ${width} ${height}`)
@@ -68,6 +71,11 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
 
     const g = svg.append('g')
       .attr('transform', `translate(${width / 2},${height / 2})`);
+
+    // Add SVG filter for glowing links
+    svg.append('defs').append('filter')
+      .attr('id', 'link-glow')
+      .html('<feGaussianBlur stdDeviation="2.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>');
 
     // Draw links
     g.selectAll('.link')
@@ -92,11 +100,6 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
       })
       .style('filter', 'url(#link-glow)');
 
-    // Add SVG filter for glowing links
-    svg.append('defs').append('filter')
-      .attr('id', 'link-glow')
-      .html('<feGaussianBlur stdDeviation="2.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>');
-
     // Color palette for nodes
     const palette = [
       '#6366F1', '#10B981', '#F59E0B', '#EC4899', '#3B82F6', '#F43F5E', '#A21CAF', '#F472B6', '#FBBF24', '#22D3EE', '#84CC16', '#E11D48'
@@ -116,6 +119,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
         setSelectedNode(d.data as MindMapNode);
       });
 
+    // Add circles to nodes
     node.append('circle')
       .attr('r', d => Math.max(18, (d.data as MindMapNode).value / 4))
       .style('fill', (d, i) => palette[i % palette.length])
@@ -123,14 +127,14 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
       .style('stroke-width', 3)
       .style('cursor', 'pointer')
       .style('filter', 'drop-shadow(0 0 12px #818cf8)')
-      .on('mouseover', function () {
+      .on('mouseover', function() {
         d3.select(this)
           .transition()
           .duration(200)
           .attr('r', 38)
           .style('filter', 'drop-shadow(0 0 24px #6366f1)');
       })
-      .on('mouseout', function (event, d) {
+      .on('mouseout', function(event, d) {
         d3.select(this)
           .transition()
           .duration(200)
@@ -138,6 +142,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
           .style('filter', 'drop-shadow(0 0 12px #818cf8)');
       });
 
+    // Add text labels to nodes
     node.append('text')
       .attr('dy', d => d.x < 180 ? '1.5em' : '-0.5em')
       .attr('dx', d => d.x < 180 ? 16 : -16)
@@ -150,12 +155,14 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
       .style('cursor', 'pointer')
       .style('text-shadow', '0 2px 8px #e0e7ff');
 
+    // Handle background click to deselect
     svg.on('click', () => {
       setSelectedNode(null);
     });
 
+    // Cleanup function
     return () => {
-      // Cleanup
+      d3.select('#d3-mind-map-container').selectAll('*').remove();
     };
   }, [nodes, links]);
 
@@ -197,7 +204,7 @@ export default function D3MindMap({ nodes, links, insights, actionSuggestion }: 
           <strong>Action Suggestion:</strong> {actionSuggestion}
         </div>
       </div>
-      <div className="mt-6 flex justify-between">
+      <div className="mt-6 flex gap-4">
         <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
           Export Mind Map
         </button>
